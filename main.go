@@ -15,6 +15,10 @@ import (
 	"github.com/google/subcommands"
 )
 
+const (
+	embeddingModel = "embeddinggemma"
+)
+
 func defaultVectorStore() (VectorStore, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -24,7 +28,7 @@ func defaultVectorStore() (VectorStore, error) {
 	if err := os.MkdirAll(storePath, 0755); err != nil {
 		return nil, err
 	}
-	e, err := NewOllamaEmbedder("nomic-embed-text")
+	e, err := NewOllamaEmbedder(embeddingModel)
 	if err != nil {
 		return nil, err
 	}

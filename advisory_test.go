@@ -9,7 +9,7 @@ import (
 )
 
 func Test_chromemStore(t *testing.T) {
-	e, err := NewOllamaEmbedder("nomic-embed-text")
+	e, err := NewOllamaEmbedder(embeddingModel)
 	require.NoError(t, err)
 	dir, err := os.MkdirTemp("", "chromem_test")
 	require.NoError(t, err)
@@ -37,4 +37,5 @@ func Test_chromemStore(t *testing.T) {
 	results, err = c.Search(t.Context(), NewQuery("What are the natural enemy of rat?").WithNumber(10))
 	require.NoError(t, err)
 	require.Len(t, results, 10)
+	t.Log(results)
 }
