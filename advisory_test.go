@@ -9,7 +9,7 @@ import (
 )
 
 func Test_chromemStore(t *testing.T) {
-	e, err := NewOllamaEmbedder(embeddingModel)
+	e, err := NewOllamaEmbedder(defaultEmbeddingModel)
 	require.NoError(t, err)
 	dir, err := os.MkdirTemp("", "chromem_test")
 	require.NoError(t, err)

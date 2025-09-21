@@ -16,10 +16,20 @@ import (
 )
 
 const (
-	embeddingModel = "embeddinggemma"
+	defaultEmbeddingModel = "nomic-embed-text"
+	defaultStoreName      = "default"
 )
 
-func defaultVectorStore() (VectorStore, error) {
+type chromaStoreCmd struct {
+	model, storeName string
+}
+
+func (c *chromaStoreCmd) SetFlags(f *flag.FlagSet) {
+	f.StringVar(&c.model, "model", defaultEmbeddingModel, "embedding model to use")
+	f.StringVar(&c.storeName, "collection", defaultStoreName, "collection of vectorstore")
+}
+
+func (c *chromaStoreCmd) Store() (VectorStore, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
@@ -28,27 +38,27 @@ func defaultVectorStore() (VectorStore, error) {
 	if err := os.MkdirAll(storePath, 0755); err != nil {
 		return nil, err
 	}
-	e, err := NewOllamaEmbedder(embeddingModel)
+	e, err := NewOllamaEmbedder(c.model)
 	if err != nil {
 		return nil, err
 	}
-	return NewCollection(storePath, "default", e)
+
+	return NewCollection(storePath, c.model+"_"+c.storeName, e)
 }
 
-type addCmd struct{}
+type addCmd struct{ chromaStoreCmd }
 
-func (*addCmd) Name() string             { return "add" }
-func (*addCmd) Synopsis() string         { return "add epub file content to vectorstore" }
-func (*addCmd) Usage() string            { return "" }
-func (*addCmd) SetFlags(_ *flag.FlagSet) {}
+func (*addCmd) Name() string     { return "add" }
+func (*addCmd) Synopsis() string { return "add epub file content to vectorstore" }
+func (*addCmd) Usage() string    { return "" }
 
-func (*addCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+func (a *addCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	patterns := f.Args()
 	if len(patterns) == 0 {
 		slog.Error("no file(s) provided.")
 		return subcommands.ExitUsageError
 	}
-	store, err := defaultVectorStore()
+	store, err := a.Store()
 	if err != nil {
 		slog.Error(err.Error())
 		return subcommands.ExitFailure
@@ -84,14 +94,13 @@ func (*addCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) s
 	return subcommands.ExitSuccess
 }
 
-type queryCmd struct{}
+type queryCmd struct{ chromaStoreCmd }
 
-func (*queryCmd) Name() string             { return "query" }
-func (*queryCmd) Synopsis() string         { return "query vectorstore" }
-func (*queryCmd) Usage() string            { return "" }
-func (*queryCmd) SetFlags(_ *flag.FlagSet) {}
+func (*queryCmd) Name() string     { return "query" }
+func (*queryCmd) Synopsis() string { return "query vectorstore" }
+func (*queryCmd) Usage() string    { return "" }
 
-func (*queryCmd) Execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+func (q *queryCmd) Execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	var query string
 	form := huh.NewForm(
 		huh.NewGroup(huh.NewInput().Title("query").Value(&query)),
@@ -102,7 +111,7 @@ func (*queryCmd) Execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{})
 	}
 	content := []string{}
 	if err := spinner.New().Context(ctx).Accessible(false).ActionWithErr(func(ctx context.Context) error {
-		store, err := defaultVectorStore()
+		store, err := q.Store()
 		if err != nil {
 			return err
 		}
