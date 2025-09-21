@@ -94,11 +94,18 @@ func (a *addCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{})
 	return subcommands.ExitSuccess
 }
 
-type queryCmd struct{ chromaStoreCmd }
+type queryCmd struct {
+	chromaStoreCmd
+	nResult int
+}
 
 func (*queryCmd) Name() string     { return "query" }
 func (*queryCmd) Synopsis() string { return "query vectorstore" }
 func (*queryCmd) Usage() string    { return "" }
+func (q *queryCmd) SetFlags(f *flag.FlagSet) {
+	q.chromaStoreCmd.SetFlags(f)
+	f.IntVar(&q.nResult, "n", 10, "number of results")
+}
 
 func (q *queryCmd) Execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	var query string
@@ -115,7 +122,7 @@ func (q *queryCmd) Execute(ctx context.Context, _ *flag.FlagSet, _ ...interface{
 		if err != nil {
 			return err
 		}
-		results, err := store.Search(ctx, NewQuery(query).WithNumber(5))
+		results, err := store.Search(ctx, NewQuery(query).WithNumber(q.nResult))
 		if err != nil {
 			return err
 		}
